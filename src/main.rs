@@ -3,18 +3,20 @@ extern crate elf;
 
 use capstone::prelude::*;
 
-//use serde::{Deserialize, Serialize};
-use serde_json::Result;
+use serde::Serialize;
 
 use std::fs::File;
 use std::io::Read;
-use std::io;
 use std::env;
 use std::collections::HashMap;
 
-const X86_CODE: &'static [u8] =
-    b"\x55\x48\x8b\x05\xb8\x13\x00\x00\xe9\x14\x9e\x08\x00\x45\x31\xe4";
-
+#[derive(Serialize)]
+struct AnalysisResult {
+    filename: String,
+    instruction_count: u32,
+    instructions: HashMap<String, u32>,
+}
+/*
 /// Print register names
 fn reg_names<T, I>(cs: &Capstone, regs: T) -> String
 where
@@ -33,7 +35,7 @@ where
 {
     let names: Vec<String> = regs.map(|x| cs.group_name(x.into()).unwrap()).collect();
     names.join(", ")
-}
+}*/
 
 fn analyze(filename: String) -> CsResult<()> {
     println!("Analyzing {}", filename);
@@ -45,7 +47,7 @@ fn analyze(filename: String) -> CsResult<()> {
         .detail(true)
         .build()?;
 
-    let mut bytes_count: i32;
+    //let mut bytes_count: i32;
     let mut buffer = Vec::new();
 
     let path_to_file = filename;
@@ -65,7 +67,7 @@ fn analyze(filename: String) -> CsResult<()> {
     let text_section_size = text_scn.shdr.size as usize;
     println!("Text segment begins at 0x{:x?} and has size 0x{:x?}",text_scn.shdr.offset, text_scn.shdr.size);
 
-    let sym_tab = match elf_file.get_section(".symtab") {
+    let _sym_tab = match elf_file.get_section(".symtab") {
         Some(s) => {
             println!("Symbol table was included...");
 
@@ -88,9 +90,9 @@ fn analyze(filename: String) -> CsResult<()> {
         },
     };
 
-    let mut file = File::open(path_to_file).expect("Unable to open example file");
+    let mut file = File::open(&path_to_file).expect("Unable to open example file");
 
-    bytes_count = 0;
+    //bytes_count = 0;
     buffer.clear();
     file.read_to_end(&mut buffer).expect("Unable to read file to buffer");
 
@@ -138,7 +140,14 @@ fn analyze(filename: String) -> CsResult<()> {
     /*for (k, v) in instructions.iter() {
         println!("{:?}: {:?}", k, v);
     }*/
-    let json_result = serde_json::to_string(&instructions);
+
+    let analysis_result = AnalysisResult {
+        filename:  path_to_file,
+        instruction_count: insns.len() as u32,
+        instructions: instructions,
+    };
+
+    let json_result = serde_json::to_string(&analysis_result);
     println!("{}", json_result.unwrap());
 
     Ok(())
