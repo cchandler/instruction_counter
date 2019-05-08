@@ -1,0 +1,10 @@
+[package]
+name = "instruction_counter"
+version = "0.1.0"
+authors = ["squanderingtime"]
+edition = "2018"
+
+[dependencies]
+capstone = "0.6.0"
+elf = "0.0.10"
+serde_json = "1.0"
