@@ -3,6 +3,8 @@ extern crate elf;
 
 use capstone::prelude::*;
 
+use sha2::{Sha256, Digest};
+
 use serde::Serialize;
 
 use std::fs::File;
@@ -13,6 +15,7 @@ use std::collections::HashMap;
 #[derive(Serialize)]
 struct AnalysisResult {
     filename: String,
+    sha256: String,
     instruction_count: u32,
     instructions: HashMap<String, u32>,
 }
@@ -98,6 +101,13 @@ fn analyze(filename: String) -> CsResult<()> {
 
     let from_disk: &[u8] = &buffer;
 
+    let mut hasher = Sha256::new();
+    hasher.input(&from_disk);
+
+    let result = hasher.result();
+    let sha256_as_hex: String = result.into_iter().map(|d| format!("{:02x}", d)).collect();
+    println!("{}", sha256_as_hex);
+
     let subset = &from_disk[text_section_offset..text_section_offset + text_section_size];
 
     let insns = cs.disasm_all(subset, text_section_offset as u64)?;
@@ -143,6 +153,7 @@ fn analyze(filename: String) -> CsResult<()> {
 
     let analysis_result = AnalysisResult {
         filename:  path_to_file,
+        sha256: sha256_as_hex,
         instruction_count: insns.len() as u32,
         instructions: instructions,
     };
